@@ -43,6 +43,17 @@ st.markdown("""
         border-radius: 5px;
         margin-bottom: 20px;
     }
+    .stButton > button {
+        width: 100%;
+        border-radius: 5px;
+        background-color: #1E88E5;
+        color: white;
+        font-weight: bold;
+        height: 38px;
+    }
+    .stTextInput > div > div > input {
+        border-radius: 5px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -75,9 +86,9 @@ st.markdown('<p class="task-title">업무 리스트 관리자</p>', unsafe_allow
 st.subheader("새 업무 추가")
 col1, col2 = st.columns([3, 1])
 with col1:
-    st.text_input("새 업무를 입력하세요", key="new_task", on_change=add_task)
+    st.text_input("새 업무를 입력하세요", key="new_task")
 with col2:
-    st.button("추가", on_click=add_task)
+    st.button("추가", on_click=add_task, key="add_task_button")
 
 st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
 
