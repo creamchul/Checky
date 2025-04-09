@@ -325,6 +325,27 @@ st.markdown("""
     .delete-btn > button:hover {
         background-color: #FFEBEE;
     }
+    .task-priority-indicator {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 40px;
+        height: 40px;
+        border-radius: 0 8px 0 8px;
+        opacity: 0.8;
+    }
+    .high-priority .task-priority-indicator {
+        background-color: #e53935;
+    }
+    .medium-priority .task-priority-indicator {
+        background-color: #FF9800;
+    }
+    .low-priority .task-priority-indicator {
+        background-color: #2196F3;
+    }
+    .completed .task-priority-indicator {
+        background-color: #4CAF50;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -601,6 +622,8 @@ if st.session_state.view == "리스트 보기":
             
             # 업무 카드 생성
             st.markdown(f'<div class="task-item {task_class} {priority_class}">', unsafe_allow_html=True)
+            # 우선순위 표시등 추가
+            st.markdown(f'<div class="task-priority-indicator"></div>', unsafe_allow_html=True)
             
             # 상단 행 (체크박스, 제목, 액션 버튼)
             col1, col2, col3 = st.columns([0.5, 5.5, 1])
