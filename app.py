@@ -49,10 +49,13 @@ st.markdown("""
         background-color: #1E88E5;
         color: white;
         font-weight: bold;
-        height: 38px;
     }
     .stTextInput > div > div > input {
         border-radius: 5px;
+    }
+    /* 버튼 컨테이너와 텍스트 입력 필드 컨테이너의 정렬을 맞춤 */
+    [data-testid="column"] > [data-testid="stVerticalBlock"] > [data-testid="stButton"] {
+        padding-top: 24px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -84,7 +87,7 @@ st.markdown('<p class="task-title">업무 리스트 관리자</p>', unsafe_allow
 
 # 새 업무 추가 섹션
 st.subheader("새 업무 추가")
-col1, col2 = st.columns([3, 1])
+col1, col2 = st.columns([4, 1])
 with col1:
     st.text_input("새 업무를 입력하세요", key="new_task")
 with col2:
