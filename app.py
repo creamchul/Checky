@@ -273,13 +273,21 @@ def generate_unique_id():
 
 def add_task():
     if st.session_state.new_task.strip():
+        # due_date가 datetime.date 객체이므로 문자열로 변환
+        due_date = None
+        if "due_date" in st.session_state:
+            if isinstance(st.session_state.due_date, datetime):
+                due_date = st.session_state.due_date.strftime("%Y-%m-%d %H:%M")
+            else:  # datetime.date 객체인 경우
+                due_date = st.session_state.due_date.strftime("%Y-%m-%d") + " 00:00"
+                
         new_task = {
             "id": generate_unique_id(),
             "task": st.session_state.new_task,
             "important": False,
             "completed": False,
             "created_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
-            "due_date": st.session_state.due_date if "due_date" in st.session_state else None,
+            "due_date": due_date,
             "priority": st.session_state.priority if "priority" in st.session_state else "보통",
             "category": st.session_state.category if "category" in st.session_state else "업무",
             "notes": st.session_state.notes if "notes" in st.session_state else ""
@@ -337,9 +345,17 @@ def filter_tasks():
                               key=lambda x: (x["completed"], datetime.strptime(x["created_at"], "%Y-%m-%d %H:%M")))
     elif st.session_state.sort == "마감일":
         # 마감일이 없는 업무는 맨 뒤로
+        def get_due_date_for_sorting(task):
+            if not task["due_date"]:
+                return datetime.max
+            try:
+                return datetime.strptime(task["due_date"], "%Y-%m-%d %H:%M")
+            except ValueError:
+                # 날짜 형식이 다를 경우 대비
+                return datetime.max
+        
         filtered_tasks = sorted(filtered_tasks, 
-                              key=lambda x: (x["completed"], 
-                                           datetime.strptime(x["due_date"], "%Y-%m-%d %H:%M") if x["due_date"] else datetime.max))
+                              key=lambda x: (x["completed"], get_due_date_for_sorting(x)))
     
     return filtered_tasks
 
@@ -390,7 +406,8 @@ with st.expander("새 업무 추가", expanded=True):
     
     detail_col1, detail_col2, detail_col3 = st.columns(3)
     with detail_col1:
-        st.date_input("마감일", key="due_date", value=datetime.now() + timedelta(days=1))
+        # date_input은 datetime.date 객체를 반환
+        st.date_input("마감일", key="due_date", value=datetime.now().date() + timedelta(days=1))
     with detail_col2:
         st.selectbox("우선순위", ["낮음", "보통", "높음"], index=1, key="priority")
     with detail_col3:
@@ -406,7 +423,7 @@ completed_count = sum(1 for task in filtered_tasks if task["completed"])
 remaining_count = len(filtered_tasks) - completed_count
 overdue_count = sum(1 for task in filtered_tasks 
                   if not task["completed"] and task["due_date"] and 
-                  datetime.strptime(task["due_date"].split()[0], "%Y-%m-%d") < datetime.now())
+                  datetime.strptime(task["due_date"].split()[0], "%Y-%m-%d").date() < datetime.now().date())
 
 st.markdown('<div class="metrics-container">', unsafe_allow_html=True)
 metric_cols = st.columns(4)
@@ -474,10 +491,14 @@ if st.session_state.view == "리스트 보기":
                 
                 # 마감일 표시
                 if task["due_date"]:
-                    due_date = datetime.strptime(task["due_date"].split()[0], "%Y-%m-%d")
-                    today = datetime.now()
-                    date_color = "#e53935" if due_date.date() < today.date() and not task["completed"] else "#757575"
-                    st.markdown(f'<span class="category-badge" style="color:{date_color};">마감: {due_date.strftime("%m/%d")}</span>', unsafe_allow_html=True)
+                    try:
+                        due_date = datetime.strptime(task["due_date"].split()[0], "%Y-%m-%d")
+                        today = datetime.now()
+                        date_color = "#e53935" if due_date.date() < today.date() and not task["completed"] else "#757575"
+                        st.markdown(f'<span class="category-badge" style="color:{date_color};">마감: {due_date.strftime("%m/%d")}</span>', unsafe_allow_html=True)
+                    except (ValueError, AttributeError):
+                        # 날짜 형식이 유효하지 않은 경우 날짜 정보를 표시하지 않음
+                        pass
                 
                 # 메모가 있는 경우
                 if task["notes"]:
@@ -487,7 +508,8 @@ if st.session_state.view == "리스트 보기":
             
             with col3:
                 # 작업 날짜 정보
-                st.caption(f"생성: {task['created_at'].split()[0]}")
+                created_date = task['created_at'].split()[0] if task['created_at'] else ""
+                st.caption(f"생성: {created_date}")
             
             with col4:
                 # 중요 버튼
@@ -560,9 +582,18 @@ elif st.session_state.view == "달력 보기":
             st.markdown(f"<div style='{date_style}text-align:center;'><b>{day_name}</b><br>{day.day}</div>", unsafe_allow_html=True)
             
             # 해당 날짜의 업무 표시
-            day_tasks = [task for task in st.session_state.tasks 
-                        if task["due_date"] and 
-                        datetime.strptime(task["due_date"].split()[0], "%Y-%m-%d").date() == day.date()]
+            today_str = day.strftime("%Y-%m-%d")
+            day_tasks = []
+            
+            for task in st.session_state.tasks:
+                if task["due_date"]:
+                    try:
+                        task_date = task["due_date"].split()[0]
+                        if task_date == today_str:
+                            day_tasks.append(task)
+                    except (ValueError, AttributeError, IndexError):
+                        # 잘못된 날짜 형식은 무시
+                        continue
             
             for task in day_tasks:
                 task_style = "text-decoration:line-through;" if task["completed"] else ""
